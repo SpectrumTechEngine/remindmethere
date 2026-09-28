@@ -1,5 +1,5 @@
 /* Remind Me There service worker: keeps the app opening offline and shows notifications. */
-const CACHE = 'rmt-v1';
+const CACHE = 'rmt-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'];
 const CDN_HOSTS = ['cdnjs.cloudflare.com', 'www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 

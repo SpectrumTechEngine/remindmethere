@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Remind Me There</string>
+    <string name="title_activity_main">Remind Me There</string>
+    <string name="package_name">com.thespectrumtechengine.remindmethere</string>
+    <string name="custom_url_scheme">com.thespectrumtechengine.remindmethere</string>
+</resources>

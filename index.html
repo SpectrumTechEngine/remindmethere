@@ -129,7 +129,7 @@ nav.tabs {
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-nav.tabs .in { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--nav-h); }
+nav.tabs .in { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--nav-h); }
 nav.tabs button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: .78rem; font-weight: 700; color: var(--ink-3); }
 nav.tabs button svg { width: 24px; height: 24px; }
 nav.tabs button[aria-current="page"] { color: var(--arrive); }
@@ -205,6 +205,18 @@ textarea.input { resize: vertical; min-height: 84px; }
 .addrow .input { flex: 1; }
 .actions { display: grid; gap: 10px; margin-top: 22px; }
 .hint { font-size: .85rem; color: var(--ink-2); margin: 6px 0 0; }
+.card.setup { border: 2px solid var(--arrive); margin-bottom: 14px; }
+.card.setup .row { border-top: 0; }
+.guide { text-align: center; padding: 8px 4px 4px; }
+.guide h2 { margin: 6px 0 10px; font-size: 1.35rem; }
+.guide p { color: var(--ink-2); line-height: 1.5; margin: 0 0 18px; }
+.guide .stepno { font-weight: 700; color: var(--arrive); margin-bottom: 4px; }
+.guide .ring.big { width: 72px; height: 72px; font-size: 2rem; margin: 0 auto 6px; }
+.guide .btn + .btn, .guide .btn + .linkbtn { margin-top: 10px; }
+.guide .linkbtn { display: block; width: 100%; }
+.hint.warn { color: #B45309; font-weight: 600; }
+.callrem { display: flex; align-items: center; gap: 8px; }
+.callrem .rem { flex: 1; min-width: 0; }
 
 .emojis { display: flex; flex-wrap: wrap; gap: 6px; }
 .emojis button { width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 1.4rem; display: grid; place-items: center; }
@@ -289,6 +301,10 @@ input[type=range] { width: 100%; accent-color: var(--arrive); height: 32px; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
       Places
     </button>
+    <button data-tab="calls">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+      Calls
+    </button>
     <button data-tab="history">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
       Done
@@ -323,7 +339,7 @@ const firebaseConfig = {
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 
 const STE_LOGO = "data:image/webp;base64,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";
-const EMOJIS = ["📍","🏠","🏢","🔧","🛒","💊","🏋️","☕","🍽️","🏥","🏫","⛽","📮","🏦","👵","🌳","✂️","🐶"];
+const EMOJIS = ["📍","🏠","🏢","🔧","🛒","💊","🏋️","☕","🍽️","🏥","🏫","⛽","📮","🏦","🧑","👵","🌳","✂️","🐶"];
 const DUBLIN = [53.3498, -6.2603];
 
 /* ---- Small helpers ---- */
@@ -361,6 +377,7 @@ const state = {
   user: null,
   cloud: false,
   places: [],
+  calls: [],   // people with reminders for when they ring: { id, name, phones: [], reminders: [{ id, text, items, repeat }] }
   history: [],
   pos: null,
   tracking: false,
@@ -381,6 +398,8 @@ let unsub = [];
 const local = {
   get places() { return load("rmt:places", []); },
   set places(v) { save("rmt:places", v); },
+  get calls() { return load("rmt:calls", []); },
+  set calls(v) { save("rmt:calls", v); },
   get history() { return load("rmt:history", []); },
   set history(v) { save("rmt:history", v); },
 };
@@ -401,6 +420,20 @@ async function removePlace(id) {
   delete presence[id]; savePresence();
   if (state.cloud) fb.deleteDoc(fb.doc(fb.db, "users", state.user.uid, "places", id)).catch((e) => console.error(e));
   else local.places = state.places;
+  render();
+}
+async function saveCall(c) {
+  c.updatedAt = Date.now();
+  const i = state.calls.findIndex((x) => x.id === c.id);
+  if (i >= 0) state.calls[i] = c; else state.calls.push(c);
+  if (state.cloud) fb.setDoc(fb.doc(fb.db, "users", state.user.uid, "calls", c.id), clean(c)).catch((e) => { console.error(e); toast("Couldn't save to your account."); });
+  else local.calls = state.calls;
+  render();
+}
+async function removeCall(id) {
+  state.calls = state.calls.filter((c) => c.id !== id);
+  if (state.cloud) fb.deleteDoc(fb.doc(fb.db, "users", state.user.uid, "calls", id)).catch((e) => console.error(e));
+  else local.calls = state.calls;
   render();
 }
 async function addHistory(h) {
@@ -436,6 +469,10 @@ function startSync() {
     state.places = snap.docs.map((d) => d.data());
     render(); if (sheet?.type === "place") rerenderSheet(); renderAlert();
   }, (e) => { console.error(e); toast("Couldn't load your places. Check your connection."); }));
+  unsub.push(fb.onSnapshot(fb.collection(fb.db, "users", u, "calls"), (snap) => {
+    state.calls = snap.docs.map((d) => d.data());
+    render(); if (sheet?.type === "call") rerenderSheet();
+  }, (e) => console.error(e)));
   unsub.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "users", u, "history"), fb.orderBy("at", "desc"), fb.limit(150)), (snap) => {
     state.history = snap.docs.map((d) => d.data());
     render();
@@ -443,13 +480,14 @@ function startSync() {
 }
 
 async function moveGuestDataToAccount() {
-  const places = local.places, history = local.history;
-  if (!places.length && !history.length) return;
+  const places = local.places, history = local.history, calls = local.calls;
+  if (!places.length && !history.length && !calls.length) return;
   try {
     const b = fb.writeBatch(fb.db), u = state.user.uid;
     places.forEach((p) => b.set(fb.doc(fb.db, "users", u, "places", p.id), clean(p)));
+    calls.forEach((c) => b.set(fb.doc(fb.db, "users", u, "calls", c.id), clean(c)));
     history.slice(0, 200).forEach((h) => b.set(fb.doc(fb.db, "users", u, "history", h.id), clean(h)));
-    b.commit().then(() => { local.places = []; local.history = []; }).catch((e) => console.error(e));
+    b.commit().then(() => { local.places = []; local.history = []; local.calls = []; }).catch((e) => console.error(e));
     if (places.length) toast(`Moved ${plural(places.length, "place", "places")} into your account`);
   } catch (e) { console.error(e); }
 }
@@ -601,6 +639,7 @@ const ICON = {
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   locate: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
   google: '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
 };
 const PIN_SVG = '<svg class="pin" viewBox="0 0 38 50" aria-hidden="true"><path d="M19 49s17-17.5 17-30A17 17 0 0 0 2 19c0 12.5 17 30 17 30z" fill="#6B3BE6" stroke="#fff" stroke-width="2.5"/><circle cx="19" cy="19" r="6.5" fill="#fff"/></svg>';
@@ -656,16 +695,21 @@ function render() {
       <div id="statusBox">${statusHTML()}</div><div id="placesList"></div>
       ${state.places.length ? `<button class="btn fab" data-act="add">${ICON.plus} Add place</button>` : ""}`;
     renderPlacesList();
+  } else if (state.tab === "calls") {
+    main.innerHTML = callsTabHTML();
+    refreshCaller();
   } else if (state.tab === "history") {
     const items = state.history;
     main.innerHTML = `<header class="top"><h1>Done<small>Reminders you've ticked off</small></h1>
       ${items.length ? `<button class="linkbtn" data-act="clearhist">Clear</button>` : ""}</header>
       ${items.length ? `<div class="card">${items.map((h) => `<div class="hist"><div class="e">${esc(h.emoji || "📍")}</div><div>
-        <div class="t">${esc(h.text)}</div><div class="m">${esc(h.placeName)}, ${h.event === "leave" ? "leaving" : "arriving"}. ${esc(fmtWhen(h.at))}</div></div></div>`).join("")}</div>`
+        <div class="t">${esc(h.text)}</div><div class="m">${esc(h.placeName)}, ${h.event === "call" ? "when they called" : h.event === "leave" ? "leaving" : "arriving"}. ${esc(fmtWhen(h.at))}</div></div></div>`).join("")}</div>`
         : `<div class="empty"><span class="ring" style="margin:0 auto">✅</span><h2>Nothing done yet</h2><p>When a reminder goes off and you tap Done, it's kept here.</p></div>`}`;
   } else {
     main.innerHTML = settingsHTML();
+    refreshCaller();
   }
+  syncCaller();
 }
 
 function settingsHTML() {
@@ -690,6 +734,8 @@ function settingsHTML() {
         <button class="btn small plain" data-act="test">Try it</button></div>
     </div>
 
+    ${Caller ? `<h2 class="sec">When someone calls</h2><div class="card" id="callerCard">${callerCardHTML()}</div>` : ""}
+
     <h2 class="sec">How it works</h2><div class="card">
       <p class="note">Remind Me There checks where you are while the app is open. Tap Start watching when you head out, and leave the app on screen. Turning on Keep screen on helps.</p>
       <p class="note">If your phone locks or you switch to another app, the phone pauses location, so a reminder can be missed until you open the app again.</p>
@@ -710,7 +756,7 @@ function settingsHTML() {
 /* ---- Place detail sheet ---- */
 let sheet = null; // { type: 'place', id } or { type: 'reminder', placeId, id }
 function openSheet(s) { sheet = s; rerenderSheet(true); }
-function closeSheet() { sheet = null; $("#sheet-root").innerHTML = ""; }
+function closeSheet() { sheet = null; guide = null; $("#sheet-root").innerHTML = ""; }
 function rerenderSheet(animate) {
   const anim = animate ? " anim" : "";
   if (!sheet) return;
@@ -723,6 +769,17 @@ function rerenderSheet(animate) {
     const keepScroll = root.querySelector(".sheet")?.scrollTop || 0;
     root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="Reminder">${reminderSheetHTML()}</div></div>`;
     root.querySelector(".sheet").scrollTop = keepScroll;
+  } else if (sheet.type === "call") {
+    const c = state.calls.find((x) => x.id === sheet.id);
+    if (!c) { closeSheet(); return; }
+    root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="${esc(c.name)}">${callSheetHTML(c)}</div></div>`;
+  } else if (sheet.type === "callrem") {
+    const keepScroll = root.querySelector(".sheet")?.scrollTop || 0;
+    root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="Call reminder">${callRemSheetHTML()}</div></div>`;
+    root.querySelector(".sheet").scrollTop = keepScroll;
+  } else if (sheet.type === "callersetup") {
+    root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="Set up call reminders">${setupSheetHTML()}</div></div>`;
+    refreshCaller();
   }
 }
 function placeSheetHTML(p) {
@@ -736,8 +793,7 @@ function placeSheetHTML(p) {
   };
   return `<div class="grab"></div>
     <div class="sheet-head"><span class="ring">${esc(p.emoji || "📍")}</span><div class="grow"><h2>${esc(p.name)}</h2><p>${esc(sub)}</p></div>
-      <button class="iconbtn" data-act="close" aria-label="Close">${ICON.close}</button></div>
-    ${rs.length ? group("arrive", "When I arrive", "var(--arrive)") + group("leave", "When I leave", "var(--leave)") + group("both", "When I arrive and leave", "var(--ink-3)")
+      <button class="iconbtn" data-act="close" aria-label="Close">${ICON.close}</button></div>    ${rs.length ? group("arrive", "When I arrive", "var(--arrive)") + group("leave", "When I leave", "var(--leave)") + group("both", "When I arrive and leave", "var(--ink-3)")
       : `<p class="none">No reminders here yet. What do you want to remember at ${esc(p.name)}?</p>`}
     <div class="actions">
       <button class="btn block" data-act="newrem" data-id="${p.id}">${ICON.plus} Add a reminder</button>
@@ -833,8 +889,8 @@ function openEditor(placeId) {
       <div id="results"></div>
       <button class="btn small plain locate" data-act="locate">${ICON.locate} My location</button></div>
     <div class="form">
-      <div class="formhead"><h2>${ed.isNew ? "Add a place" : "Edit place"}</h2></div>
-      <p class="hint" style="margin-top:4px">Move the map so the pin sits on the place.</p>
+      <div class="formhead"><h2>${ed.isNew ? "Add a place" : "Edit place"}</h2>
+        ${canPickContacts() ? `<button class="btn small soft" data-act="contact">${ICON.person} From contacts</button>` : ""}</div>      <p class="hint" style="margin-top:4px">Move the map so the pin sits on the place.</p>
       <label class="f" for="pname">Name</label>
       <input class="input" id="pname" value="${esc(place.name)}" placeholder="Mechanic" maxlength="60" autocomplete="off">
       <label class="f">Icon</label>
@@ -892,6 +948,321 @@ async function searchAddress(q) {
       : `<div class="results"><button data-act="noresults">No matches. Try adding the town or county.</button></div>`;
   } catch { box.innerHTML = `<div class="results"><button data-act="noresults">Search needs an internet connection.</button></div>`; }
 }
+/* ---- Picking a contact (the Android app, or Chrome on Android) ---- */
+function canPickContacts() { return !!Caller || ("contacts" in navigator && "select" in navigator.contacts); }
+// Returns { name, address, phones } or null if cancelled. Throws on errors.
+async function readContact(fields) {
+  if (Caller) {
+    const c = await Caller.pickContact();
+    return c.cancelled ? null : { name: c.name || "", address: c.address || null, phones: c.phones || [] };
+  }
+  const props = navigator.contacts.getProperties ? await navigator.contacts.getProperties() : ["name", "address"];
+  const want = ["name", ...fields].filter((p) => props.includes(p));
+  const [c] = await navigator.contacts.select(want, { multiple: false });
+  if (!c) return null;
+  return { name: (c.name && c.name[0]) || "", address: (c.address && c.address[0]) || null, phones: c.tel || [] };
+}
+function contactError(e) {
+  if (e?.code === "DENIED") toast("Contacts are off for this app. Allow them in Calls, under Finish setting up.");
+  else if (e && e.name !== "AbortError") toast("Couldn't open your contacts.");
+}
+
+/* ---- Place from a contact's address ---- */
+async function pickContact() {
+  try {
+    const c = await readContact(["address"]);
+    if (!c) return;
+    const name = c.name, a = c.address;
+    if (name && !$("#pname").value.trim()) $("#pname").value = name;
+    if (ed.place.emoji === "📍") { ed.place.emoji = "🧑"; document.querySelectorAll("#emojis button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === "🧑")); }
+    if (!a) { toast(`${name || "That contact"} has no address saved. Search for it or move the pin.`); return; }
+    const lines = [...(a.addressLine || []), a.dependentLocality, a.city, a.region, a.postalCode, a.country].filter(Boolean);
+    const full = lines.join(", ");
+    $("#search").value = full;
+    toast("Finding the address on the map…");
+    const tries = [full, [a.city, a.region, a.country].filter(Boolean).length ? [...(a.addressLine || []).slice(0, 1), a.city, a.region, a.country].filter(Boolean).join(", ") : "", a.postalCode || ""].filter(Boolean);
+    for (const q of tries) {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`);
+      const hit = (await res.json())[0];
+      if (hit) {
+        const lat = +hit.lat, lng = +hit.lon;
+        if (ed.map) ed.map.setView([lat, lng], 18); else { ed.place.lat = lat; ed.place.lng = lng; }
+        toast("Found it. Check the pin is on the right house.");
+        return;
+      }
+    }
+    toast("Couldn't find that address on the map. Try searching part of it, or move the pin.");
+  } catch (e) { contactError(e); }
+}
+
+/* =========================================================
+   Android app only: the caller pop-up
+   ========================================================= */
+// Talks to CallerPlugin.java. The app doesn't bundle @capacitor/core, so this uses the
+// bridge Capacitor injects into the page (Capacitor.nativePromise) directly.
+const Caller = (() => {
+  const C = window.Capacitor;
+  if (!C?.isNativePlatform?.() || !C.nativePromise) return null;
+  const methods = ["pickContact", "sync", "testPopup", "status", "requestContacts", "requestNotifications",
+    "requestScreening", "openOverlaySettings", "openPhonePermissions"];
+  return Object.fromEntries(methods.map((m) => [m, (opts = {}) => C.nativePromise("RmtCaller", m, opts)]));
+})();
+let callerSent = "";
+let callerStatus = null;
+
+// Keep the phone's own copy of call reminders up to date, so the pop-up works with the app closed
+function syncCaller() {
+  if (!Caller) return;
+  const entries = state.calls
+    .filter((c) => c.phones?.length && (c.reminders || []).length)
+    .map((c) => ({
+      contactName: c.name, phones: c.phones,
+      reminders: c.reminders.map((r) => ({ text: r.text, items: (r.items || []).filter((i) => !i.done).map((i) => i.text) })),
+    }));
+  const json = JSON.stringify(entries);
+  if (json === callerSent) return;
+  callerSent = json;
+  Caller.sync({ json }).catch((e) => console.warn(e));
+}
+
+async function refreshCaller() {
+  if (!Caller) return;
+  try { callerStatus = await Caller.status(); } catch (e) { console.warn(e); }
+  const box = $("#callerCard"); if (box) box.innerHTML = callerCardHTML();
+  const top = $("#callSetup"); if (top) top.innerHTML = callSetupHTML();
+}
+
+function callerCardHTML() {
+  const s = callerStatus;
+  if (!s) return `<p class="note">Checking…</p>`;
+  if (!s.supported) return `<p class="note">The caller pop-up needs Android 10 or newer.</p>`;
+  const step = (ok, title, text, act, label) => `<div class="row"><div class="grow"><b>${ok ? "✅ " : ""}${title}</b><span>${text}</span></div>
+    ${ok ? "" : `<button class="btn small soft" data-act="${act}">${label}</button>`}</div>`;
+  return `<p class="note">Switch these on so your call reminders pop up over the call screen when someone rings.</p>
+    ${setupDone() < 4 ? `<div class="row"><button class="btn block" data-act="caller-setup">Set up step by step</button></div>` : ""}
+    ${step(s.contacts, "Contacts", "Lets the app see who's ringing.", "caller-contacts", "Allow")}
+    ${step(s.screening, "Caller ID app", "Android tells the app who's calling. It can't block, answer or record calls.", "caller-role", "Set up")}
+    ${step(s.overlay, "Show over other apps", "Lets the reminders appear on top of the call screen.", "caller-overlay", "Turn on")}
+    ${step(s.notifications, "Notifications", "Keeps the reminders in your notifications after the call.", "caller-notif", "Allow")}
+    ${s.xiaomi ? `<div class="row"><div class="grow"><b>Xiaomi phones</b><span>Tap Open, then turn on <b>Display pop-up windows while running in the background</b> and <b>Show on Lock screen</b>.</span></div>
+      <button class="btn small soft" data-act="caller-xiaomi">Open</button></div>` : ""}
+    <div class="row"><div class="grow"><b>Try it</b><span>${s.linked ? "Shows what the pop-up looks like." : "Add a call reminder first."}</span></div>
+      ${s.linked ? `<button class="btn small plain" data-act="caller-test">Show it</button>` : ""}</div>`;
+}
+
+// How many of the four must-have switches are on
+function setupDone() {
+  const s = callerStatus;
+  return s ? [s.contacts, s.screening, s.overlay, s.notifications].filter(Boolean).length : 0;
+}
+function setupComplete() { return !Caller || (callerStatus?.supported && setupDone() === 4); }
+
+/* ---- Calls tab: reminders for when someone rings ---- */
+function callSetupHTML() {
+  if (!Caller) return `<div class="card"><p class="note">Call reminders pop up over the call screen in the <b>Remind Me There Android app</b>. You can add them here too.</p></div>`;
+  if (!callerStatus) return "";
+  if (!callerStatus.supported) return `<div class="card"><p class="note">Call reminders need Android 10 or newer to pop up.</p></div>`;
+  if (setupDone() === 4) return "";
+  return `<div class="card setup"><div class="row"><div class="grow"><b>Finish setting up: ${setupDone()} of 4 done</b>
+      <span>Until this is done, reminders won't pop up when they ring.</span></div>
+      <button class="btn small" data-act="caller-setup">Set up</button></div></div>`;
+}
+function callsTabHTML() {
+  const setup = callSetupHTML();
+  const list = state.calls.length
+    ? `<div class="places">${[...state.calls].sort((a, b) => a.name.localeCompare(b.name)).map(callCardHTML).join("")}</div>`
+    : `<div class="empty"><span class="ring" style="margin:0 auto">📞</span><h2>Add your first call reminder</h2>
+        <p>Pick someone from your contacts, like your doctor, then add what you want to mention next time they ring.</p>
+        <button class="btn" data-act="addcall">${ICON.plus} Add a person</button></div>`;
+  return `<header class="top"><h1>Calls<small>Reminders for when someone rings</small></h1></header>
+    <div id="callSetup">${setup}</div>${list}
+    ${state.calls.length ? `<button class="btn fab" data-act="addcall">${ICON.plus} Add person</button>` : ""}`;
+}
+function callCardHTML(c) {
+  const n = (c.reminders || []).length;
+  const tag = n ? `<span class="tag a">${plural(n, "reminder", "reminders")}</span>` : `<span class="tag n">No reminders yet</span>`;
+  return `<button class="place" data-act="opencall" data-id="${c.id}">
+    <span class="ring">📞</span>
+    <span class="info"><span class="name">${esc(c.name)}</span><span class="tags">${tag}</span></span></button>`;
+}
+function callSheetHTML(c) {
+  const rs = c.reminders || [];
+  return `<div class="grab"></div>
+    <div class="sheet-head"><span class="ring">📞</span><div class="grow"><h2>${esc(c.name)}</h2><p>Pops up when they ring</p></div>
+      <button class="iconbtn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+    ${rs.length ? rs.map((r) => `<div class="callrem">${remHTML(r).replace('data-act="editrem"', 'data-act="editcallrem"').replace(/Every visit/, "Every call")}
+        <button class="btn small soft" data-act="calldone" data-id="${r.id}">Done</button></div>`).join("")
+      : `<p class="none">What do you want to mention next time ${esc(c.name)} rings?</p>`}
+    <div class="actions">
+      <button class="btn block" data-act="newcallrem" data-id="${c.id}">${ICON.plus} Add a reminder</button>
+      <button class="btn danger block" data-act="delcall" data-id="${c.id}">Remove ${esc(c.name)}</button>
+    </div>`;
+}
+function callRemSheetHTML() {
+  const c = state.calls.find((x) => x.id === sheet.callId);
+  return `<div class="grab"></div>
+    <div class="sheet-head"><button class="iconbtn" data-act="backcall" aria-label="Back">${ICON.back}</button>
+      <div class="grow"><h2>${draft._new ? "New call reminder" : "Edit call reminder"}</h2><p>📞 When ${esc(c?.name || "")} rings</p></div></div>
+    <label class="f" for="remText">What do you want to mention?</label>
+    <textarea class="input" id="remText" placeholder="The mole on my arm" maxlength="400">${esc(draft.text)}</textarea>
+    <label class="f" for="itemText">Checklist <span style="font-weight:400;color:var(--ink-2)">(optional)</span></label>
+    <div class="checks">${draft.items.map((it, i) => `<div class="check"><span>${esc(it.text)}</span><button class="iconbtn" style="width:36px;height:36px" data-act="rmitem" data-i="${i}" aria-label="Remove ${esc(it.text)}">${ICON.close}</button></div>`).join("")}</div>
+    <div class="addrow" style="margin-top:8px"><input class="input" id="itemText" placeholder="Ask about test results" maxlength="120" enterkeyhint="done"><button class="btn soft" data-act="additem">Add</button></div>
+    <label class="f">How often</label>
+    <div class="seg two"><button type="button" data-act="repeat" data-v="0" aria-pressed="${!draft.repeat}">Just once</button><button type="button" data-act="repeat" data-v="1" aria-pressed="${!!draft.repeat}">Every call</button></div>
+    <p class="hint">${draft.repeat ? "Stays after you tick it off, ready for next time." : "Moves to Done once you tick it off."}</p>
+    <div class="actions">
+      <button class="btn block" data-act="savecallrem">Save reminder</button>
+      ${draft._new ? "" : `<button class="btn danger block" data-act="delcallrem">Delete reminder</button>`}
+    </div>`;
+}
+/* ---- Guided setup: one step at a time, each explained before the phone's screen opens ---- */
+const GUIDE = [
+  { key: "contacts", title: "Allow contacts", text: "So the app can see who's ringing. On the next question, tap <b>Allow</b>.", run: () => Caller.requestContacts() },
+  { key: "notifications", title: "Allow notifications", text: "So your reminders are still there after the call. On the next question, tap <b>Allow</b>.", run: () => Caller.requestNotifications() },
+  { key: "screening", title: "Make it your caller ID app", text: "This is how the app knows someone is ringing. It can't block, answer or record calls.<br><br>On the next screen, choose <b>Remind Me There</b>. If you see a list instead, tap <b>Caller ID &amp; spam app</b>, choose <b>Remind Me There</b>, then press Back.", run: () => Caller.requestScreening() },
+  { key: "overlay", title: "Show over other apps", text: "So the reminder can appear on top of the call screen.<br><br>On the next screen, switch on <b>Remind Me There</b>, then press Back.", run: () => Caller.openOverlaySettings(), leaves: true },
+  { key: "xiaomi", title: "One more for Xiaomi phones", text: "On the next screen, tap <b>Other permissions</b> and turn on <b>Display pop-up windows while running in the background</b> and <b>Show on Lock screen</b>. Then press Back.", run: () => Caller.openPhonePermissions(), leaves: true, manual: true },
+];
+let guide = null; // { step, tried, visited: {}, skipped: {}, away }
+
+function guideSteps() { return GUIDE.filter((g) => g.key !== "xiaomi" || callerStatus?.xiaomi); }
+function guideCurrent() {
+  return guideSteps().find((g) => !guide.skipped[g.key] && (g.manual ? !guide.visited[g.key] : !callerStatus?.[g.key]));
+}
+async function startGuide() {
+  guide = { step: null, tried: false, visited: {}, skipped: {}, away: false };
+  await refreshCaller();
+  guideShow();
+}
+function guideShow() {
+  const g = guideCurrent();
+  guide.tried = guide.step === g?.key && guide.tried;
+  guide.step = g?.key || "done";
+  if (sheet?.type === "callersetup") rerenderSheet(); else openSheet({ type: "callersetup" });
+}
+async function guideGo() {
+  const g = GUIDE.find((x) => x.key === guide.step); if (!g) return;
+  guide.tried = true;
+  try {
+    if (g.leaves) { guide.away = true; await g.run(); if (g.manual) guide.visited[g.key] = true; return; }
+    const s = await g.run();
+    if (s && typeof s === "object") callerStatus = s;
+    if (s?.openedDefaultApps) { guide.away = true; return; } // back via visibilitychange
+  } catch (e) { toast(e?.message || "That didn't work."); }
+  await refreshCaller(); guideShow();
+}
+// Coming back from one of the phone's settings screens
+async function guideReturn() {
+  if (!guide?.away) return;
+  guide.away = false;
+  await refreshCaller(); guideShow();
+}
+function guideHTML() {
+  const steps = guideSteps(), n = steps.length;
+  if (guide.step === "done") {
+    const all = setupDone() === 4;
+    return `<div class="guide"><span class="ring big">${all ? "✅" : "⚠️"}</span>
+      <h2>${all ? "All set" : "Nearly there"}</h2>
+      <p>${all ? "Next time someone on your Calls list rings, their reminders pop up over the call screen." : "Some switches are still off, so reminders may not pop up. You can finish them below any time."}</p>
+      ${callerStatus?.linked ? `<button class="btn block" data-act="caller-test">Show me what it looks like</button>` : ""}
+      <button class="btn plain block" data-act="guide-list">See all switches</button></div>`;
+  }
+  const g = GUIDE.find((x) => x.key === guide.step), i = steps.indexOf(g) + 1;
+  return `<div class="guide"><p class="stepno">Step ${i} of ${n}</p><h2>${g.title}</h2><p>${g.text}</p>
+    ${guide.tried && !g.manual ? `<p class="hint warn">It's still off. Tap Continue to try again, or skip it for now.</p>` : ""}
+    <button class="btn block" data-act="guide-go">Continue</button>
+    <button class="linkbtn" data-act="guide-skip" style="text-align:center">Skip for now</button></div>`;
+}
+function setupSheetHTML() {
+  return `<div class="grab"></div>
+    <div class="sheet-head"><span class="ring">📞</span><div class="grow"><h2>Set up call reminders</h2><p>So they pop up when someone rings</p></div>
+      <button class="iconbtn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+    ${guide ? guideHTML() : `<div class="card" id="callerCard">${callerCardHTML()}</div>`}`;
+}
+
+// Pick a contact, reuse them if they're already on the list, then write the first reminder
+async function addCallPerson() {
+  try {
+    const c = await readContact(["tel"]);
+    if (!c) return;
+    if (!c.phones.length) { toast(`${c.name || "That contact"} has no phone number saved.`); return; }
+    const keys = c.phones.map(phoneKey);
+    let person = state.calls.find((p) => (p.phones || []).some((n) => keys.includes(phoneKey(n))));
+    if (person) {
+      const merged = [...person.phones, ...c.phones.filter((n) => !person.phones.some((m) => phoneKey(m) === phoneKey(n)))];
+      if (merged.length !== person.phones.length) await saveCall({ ...clean(person), phones: merged });
+    } else {
+      person = { id: uid(), name: c.name || c.phones[0], phones: c.phones, reminders: [], createdAt: Date.now() };
+      await saveCall(person);
+    }
+    openCallReminder(person.id);
+  } catch (e) { contactError(e); }
+}
+// Same rule as the phone uses: compare the last 9 digits
+const phoneKey = (n) => String(n || "").replace(/\D/g, "").slice(-9);
+
+function openCallReminder(callId, remId) {
+  const c = state.calls.find((x) => x.id === callId);
+  const r = remId && (c.reminders || []).find((x) => x.id === remId);
+  draft = r ? clean(r) : { id: uid(), text: "", repeat: false, items: [], createdAt: Date.now() };
+  draft._new = !r;
+  sheet = { type: "callrem", callId, id: draft.id };
+  rerenderSheet(true);
+  setTimeout(() => { if (draft?._new) $("#remText")?.focus(); }, 60);
+}
+async function saveCallDraft() {
+  syncDraftText();
+  const pending = $("#itemText")?.value.trim();
+  if (pending) draft.items.push({ id: uid(), text: pending, done: false });
+  draft.text = draft.text.trim();
+  if (!draft.text && draft.items.length) draft.text = draft.items.map((i) => i.text).join(", ").slice(0, 80);
+  if (!draft.text) { toast("Write what you want to mention first."); $("#remText")?.focus(); return; }
+  const c = clean(state.calls.find((x) => x.id === sheet.callId));
+  const r = { ...draft }; delete r._new;
+  c.reminders = c.reminders || [];
+  const i = c.reminders.findIndex((x) => x.id === r.id);
+  if (i >= 0) c.reminders[i] = r; else c.reminders.push(r);
+  await saveCall(c);
+  draft = null;
+  toast("Saved. It'll pop up next time they ring.");
+  if (!setupComplete()) startGuide();
+  else openSheet({ type: "call", id: c.id });
+}
+async function deleteCallDraft() {
+  if (!confirm("Delete this reminder?")) return;
+  const c = clean(state.calls.find((x) => x.id === sheet.callId));
+  c.reminders = (c.reminders || []).filter((r) => r.id !== draft.id);
+  await saveCall(c); draft = null; openSheet({ type: "call", id: c.id });
+}
+async function callReminderDone(callId, remId) {
+  const c = clean(state.calls.find((x) => x.id === callId));
+  const r = c.reminders.find((x) => x.id === remId); if (!r) return;
+  await addHistory({ text: r.text, placeName: c.name, emoji: "📞", event: "call", at: Date.now() });
+  if (r.repeat) r.items = (r.items || []).map((x) => ({ ...x, done: false }));
+  else c.reminders = c.reminders.filter((x) => x.id !== remId);
+  await saveCall(c); rerenderSheet();
+  toast(r.repeat ? "Ticked off. It'll be there next call." : "Moved to Done");
+}
+
+async function callerAction(act) {
+  try {
+    if (act === "caller-contacts") callerStatus = await Caller.requestContacts();
+    if (act === "caller-role") {
+      callerStatus = await Caller.requestScreening();
+      if (callerStatus.openedDefaultApps) { toast("Tap Caller ID & spam app, choose Remind Me There, then come back."); return; }
+    }
+    if (act === "caller-notif") callerStatus = await Caller.requestNotifications();
+    if (act === "caller-overlay") { await Caller.openOverlaySettings(); toast("Turn on Allow display over other apps, then come back."); return; }
+    if (act === "caller-xiaomi") { await Caller.openPhonePermissions(); return; }
+    if (act === "caller-test") {
+      if (!callerStatus?.overlay) toast("Turn on Show over other apps to see the pop-up. For now it's in your notifications.");
+      await Caller.testPopup(); return;
+    }
+  } catch (e) { toast(e?.message || "That didn't work."); }
+  refreshCaller();
+}
+
 function closeEditor() { if (ed?.map) ed.map.remove(); ed = null; $("#editor-root").innerHTML = ""; }
 async function saveEditor() {
   const p = ed.place;
@@ -996,7 +1367,7 @@ function hideWelcome() { $("#welcome-root").innerHTML = ""; }
 
 /* ---- Backup ---- */
 function exportBackup() {
-  const data = { app: "Remind Me There", version: 1, savedAt: new Date().toISOString(), places: state.places, history: state.history };
+  const data = { app: "Remind Me There", version: 1, savedAt: new Date().toISOString(), places: state.places, calls: state.calls, history: state.history };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
   const a = document.createElement("a"); a.href = url; a.download = `remind-me-there-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
@@ -1005,9 +1376,11 @@ async function importBackup(file) {
   try {
     const data = JSON.parse(await file.text());
     const places = Array.isArray(data.places) ? data.places.filter((p) => p && p.id && typeof p.lat === "number" && typeof p.lng === "number" && p.name) : [];
-    if (!places.length) { toast("That file doesn't have any places in it."); return; }
+    const calls = Array.isArray(data.calls) ? data.calls.filter((c) => c && c.id && c.name && Array.isArray(c.phones)) : [];
+    if (!places.length && !calls.length) { toast("That file doesn't have any places or call reminders in it."); return; }
     for (const p of places) await savePlace({ reminders: [], radius: 100, emoji: "📍", delay: 0, ...p });
-    toast(`Loaded ${plural(places.length, "place", "places")}`);
+    for (const c of calls) await saveCall({ reminders: [], ...c });
+    toast(`Loaded ${[places.length ? plural(places.length, "place", "places") : "", calls.length ? plural(calls.length, "person", "people") : ""].filter(Boolean).join(" and ")}`);
   } catch { toast("Couldn't read that file. Choose a Remind Me There backup."); }
 }
 
@@ -1020,7 +1393,24 @@ document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-act]"); if (!el) return;
   const act = el.dataset.act, id = el.dataset.id;
   switch (act) {
-    case "scrim": if (e.target === el) { if (sheet?.type === "reminder") { syncDraftText(); openSheet({ type: "place", id: sheet.placeId }); } else closeSheet(); } break;
+    case "scrim": if (e.target === el) {
+      if (sheet?.type === "reminder") { syncDraftText(); openSheet({ type: "place", id: sheet.placeId }); }
+      else if (sheet?.type === "callrem") { draft = null; openSheet({ type: "call", id: sheet.callId }); }
+      else closeSheet();
+    } break;
+    case "addcall": addCallPerson(); break;
+    case "opencall": openSheet({ type: "call", id }); break;
+    case "newcallrem": openCallReminder(id); break;
+    case "editcallrem": openCallReminder(sheet.id, id); break;
+    case "backcall": draft = null; openSheet({ type: "call", id: sheet.callId }); break;
+    case "savecallrem": saveCallDraft(); break;
+    case "delcallrem": deleteCallDraft(); break;
+    case "calldone": callReminderDone(sheet.id, id); break;
+    case "delcall": { const c = state.calls.find((x) => x.id === id); if (c && confirm(`Remove ${c.name} and their call reminders?`)) { closeSheet(); await removeCall(id); toast("Removed"); } break; }
+    case "caller-setup": startGuide(); break;
+    case "guide-go": guideGo(); break;
+    case "guide-skip": guide.skipped[guide.step] = true; guideShow(); break;
+    case "guide-list": guide = null; rerenderSheet(); break;
     case "close": closeSheet(); break;
     case "track": startTracking(true); break;
     case "untrack": stopTracking(); break;
@@ -1037,6 +1427,9 @@ document.addEventListener("click", async (e) => {
     case "saverem": saveDraft(); break;
     case "delrem": deleteDraft(); break;
     case "closeeditor": closeEditor(); break;
+    case "contact": pickContact(); break;
+    case "caller-contacts": case "caller-role": case "caller-overlay": case "caller-notif": case "caller-xiaomi": case "caller-test":
+      callerAction(act); break;
     case "locate": locateMe(); break;
     case "emoji": ed.place.emoji = el.dataset.v; document.querySelectorAll("#emojis button").forEach((b) => b.setAttribute("aria-pressed", b === el)); break;
     case "delay": ed.place.delay = +el.dataset.v; el.parentElement.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b === el)); break;
@@ -1081,6 +1474,9 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (ed) closeEditor(); else if (sheet) closeSheet(); }
 });
 document.addEventListener("visibilitychange", () => {
+  // Coming back from the phone's settings screens: show what's now switched on
+  if (document.visibilityState === "visible" && guide?.away) guideReturn();
+  else if (document.visibilityState === "visible" && (state.tab === "settings" || state.tab === "calls")) refreshCaller();
   if (document.visibilityState === "visible" && state.tracking) {
     if (state.prefs.wake) grabWake();
     navigator.geolocation.getCurrentPosition(onPos, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
@@ -1096,7 +1492,7 @@ async function boot() {
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
   // Show what's saved on the phone straight away
-  state.places = local.places; state.history = local.history; sortHistory();
+  state.places = local.places; state.calls = local.calls; state.history = local.history; sortHistory();
   render();
 
   let authResolved = false;
@@ -1121,7 +1517,7 @@ async function boot() {
       } else {
         const wasSignedIn = state.cloud;
         state.user = null; state.cloud = false; stopSync();
-        state.places = local.places; state.history = local.history; sortHistory();
+        state.places = local.places; state.calls = local.calls; state.history = local.history; sortHistory();
         if (wasSignedIn) { save("rmt:onboarded", false); showWelcome(); }
       }
       render(); finish();

@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Remind Me There</title>
+<meta name="description" content="Reminders that go off when you arrive at or leave a place.">
+<meta name="theme-color" content="#F4F4F8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Remind Me There">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<style>
+:root {
+  --bg: #F4F4F8;
+  --surface: #FFFFFF;
+  --ink: #1F1B2D;
+  --ink-2: #5E5970;
+  --ink-3: #8C88A0;
+  --line: #E4E2EC;
+  --arrive: #6B3BE6;
+  --arrive-soft: #EFE9FD;
+  --leave: #0A8A7E;
+  --leave-soft: #E1F3F0;
+  --danger: #C22D46;
+  --r-lg: 22px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --nav-h: 64px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font);
+  font-size: 17px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--arrive); outline-offset: 2px; }
+.hidden { display: none !important; }
+
+/* ---------- Layout ---------- */
+#main {
+  max-width: 640px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 18px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 96px);
+}
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.top h1 { font-size: 1.6rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+.top h1 small { display: block; font-size: .9rem; font-weight: 400; color: var(--ink-2); letter-spacing: 0; margin-top: 4px; }
+
+/* Watching status */
+.status {
+  display: flex; align-items: center; gap: 12px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 18px;
+}
+.status .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--ink-3); flex: none; position: relative; }
+.status.on .dot { background: var(--leave); }
+.status.on .dot::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--leave);
+  animation: beat 2.4s ease-out infinite; opacity: 0;
+}
+@keyframes beat { 0% { transform: scale(.6); opacity: .8; } 100% { transform: scale(1.6); opacity: 0; } }
+.status .txt { flex: 1; min-width: 0; }
+.status .txt b { display: block; font-size: .98rem; }
+.status .txt span { font-size: .85rem; color: var(--ink-2); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 700; font-size: 1rem;
+  background: var(--arrive); color: #fff; min-height: 48px;
+}
+.btn.small { padding: 8px 14px; min-height: 38px; font-size: .92rem; }
+.btn.ghost { background: transparent; color: var(--arrive); box-shadow: inset 0 0 0 2px var(--arrive-soft); }
+.btn.soft { background: var(--arrive-soft); color: var(--arrive); }
+.btn.plain { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.btn.danger { background: transparent; color: var(--danger); box-shadow: inset 0 0 0 1px #f0c9cf; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .5; }
+.linkbtn { background: none; border: 0; padding: 6px 2px; color: var(--arrive); font-weight: 700; }
+
+/* Places list */
+.places { display: grid; gap: 10px; }
+.place {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 14px 16px;
+}
+.place.here { border-color: var(--arrive); box-shadow: 0 0 0 3px var(--arrive-soft); }
+.ring {
+  --c: var(--arrive);
+  width: 52px; height: 52px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  font-size: 1.55rem; background: var(--arrive-soft);
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent);
+}
+.place .info { flex: 1; min-width: 0; }
+.place .name { font-weight: 700; font-size: 1.08rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.tag { font-size: .8rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.tag.a { background: var(--arrive-soft); color: var(--arrive); }
+.tag.l { background: var(--leave-soft); color: var(--leave); }
+.tag.n { background: #F0EFF4; color: var(--ink-2); }
+.place .dist { font-size: .88rem; color: var(--ink-2); text-align: right; flex: none; }
+.place.here .dist { color: var(--arrive); font-weight: 700; }
+
+.empty { text-align: center; padding: 38px 18px; background: var(--surface); border: 1px dashed #D3D0DE; border-radius: var(--r-lg); }
+.empty h2 { font-size: 1.2rem; margin: 10px 0 6px; }
+.empty p { color: var(--ink-2); margin: 0 0 18px; }
+
+.fab {
+  position: fixed; right: max(18px, calc(50% - 302px)); bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 20; box-shadow: 0 10px 26px rgb(107 59 230 / .32);
+}
+
+/* Bottom nav */
+nav.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: rgb(255 255 255 / .94);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+nav.tabs .in { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--nav-h); }
+nav.tabs button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: .78rem; font-weight: 700; color: var(--ink-3); }
+nav.tabs button svg { width: 24px; height: 24px; }
+nav.tabs button[aria-current="page"] { color: var(--arrive); }
+
+/* Cards (settings/history) */
+h2.sec { font-size: 1.05rem; margin: 26px 0 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 6px 16px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row .grow { flex: 1; min-width: 0; }
+.row .grow b { display: block; font-size: 1rem; }
+.row .grow span { display: block; font-size: .86rem; color: var(--ink-2); }
+.note { font-size: .92rem; color: var(--ink-2); padding: 14px 0; margin: 0; }
+.note + .note { padding-top: 0; }
+
+.hist { display: flex; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
+.hist:first-child { border-top: 0; }
+.hist .e { font-size: 1.3rem; width: 30px; text-align: center; flex: none; }
+.hist .t { font-weight: 700; }
+.hist .m { font-size: .84rem; color: var(--ink-2); }
+
+/* Switch */
+.switch { position: relative; width: 52px; height: 32px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: #D8D5E2; transition: background .2s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .25); transition: transform .2s; }
+.switch input:checked + span { background: var(--arrive); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 3px solid var(--arrive); outline-offset: 2px; }
+
+/* ---------- Sheets ---------- */
+.scrim { position: fixed; inset: 0; background: rgb(31 27 45 / .38); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%; max-width: 640px; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px); overflow: auto;
+  background: var(--bg); border-radius: 26px 26px 0 0;
+  padding: 10px 18px calc(env(safe-area-inset-bottom, 0px) + 22px);
+}
+.sheet.anim { animation: up .24s ease-out; }
+@keyframes up { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+.grab { width: 44px; height: 5px; border-radius: 3px; background: #D3D0DE; margin: 0 auto 12px; }
+.sheet-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.sheet-head h2 { margin: 0; font-size: 1.35rem; line-height: 1.15; }
+.sheet-head p { margin: 2px 0 0; color: var(--ink-2); font-size: .9rem; }
+.sheet-head .grow { flex: 1; min-width: 0; }
+.iconbtn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); display: grid; place-items: center; flex: none; }
+.iconbtn svg { width: 20px; height: 20px; }
+
+.group { margin: 18px 0 8px; display: flex; align-items: center; justify-content: space-between; }
+.group h3 { margin: 0; font-size: 1rem; }
+.group h3 i { font-style: normal; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+.rem { display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px; }
+.rem .t { font-weight: 700; white-space: pre-wrap; word-break: break-word; }
+.rem .m { font-size: .84rem; color: var(--ink-2); margin-top: 3px; }
+.rem ul { margin: 6px 0 0; padding-left: 20px; font-size: .92rem; color: var(--ink-2); }
+.none { color: var(--ink-3); font-size: .92rem; margin: 0 0 8px; }
+
+/* Forms */
+label.f { display: block; font-weight: 700; font-size: .95rem; margin: 16px 0 6px; }
+.input, textarea.input {
+  width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm);
+  padding: 12px 14px; font-size: 1rem; min-height: 48px;
+}
+textarea.input { resize: vertical; min-height: 84px; }
+.input:focus { outline: 2px solid var(--arrive); outline-offset: 0; border-color: transparent; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #EAE8F0; padding: 4px; border-radius: var(--r-md); }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.seg button { border: 0; background: none; border-radius: 10px; padding: 10px 6px; font-weight: 700; font-size: .92rem; color: var(--ink-2); min-height: 44px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgb(31 27 45 / .12); }
+.checks { display: grid; gap: 6px; }
+.check { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 6px 6px 12px; }
+.check span { flex: 1; word-break: break-word; }
+.addrow { display: flex; gap: 8px; }
+.addrow .input { flex: 1; }
+.actions { display: grid; gap: 10px; margin-top: 22px; }
+.hint { font-size: .85rem; color: var(--ink-2); margin: 6px 0 0; }
+
+.emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+.emojis button { width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 1.4rem; display: grid; place-items: center; }
+.emojis button[aria-pressed="true"] { border-color: var(--arrive); box-shadow: 0 0 0 2px var(--arrive-soft); background: var(--arrive-soft); }
+input[type=range] { width: 100%; accent-color: var(--arrive); height: 32px; }
+
+/* ---------- Place editor (full screen) ---------- */
+.editor { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; }
+.editor .mapwrap { position: relative; flex: 0 0 46%; min-height: 240px; background: #E6E4EE; }
+.editor #map { position: absolute; inset: 0; }
+.editor .pin { position: absolute; left: 50%; top: 50%; width: 38px; height: 50px; transform: translate(-50%, -100%); z-index: 500; pointer-events: none; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .3)); }
+.editor .maptop { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 12px); z-index: 600; display: flex; gap: 8px; }
+.editor .maptop .input { box-shadow: 0 4px 14px rgb(31 27 45 / .15); border: 0; }
+.editor .locate { position: absolute; right: 12px; bottom: 14px; z-index: 600; box-shadow: 0 4px 14px rgb(31 27 45 / .2); }
+.results { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 700; background: var(--surface); border-radius: var(--r-md); box-shadow: 0 10px 30px rgb(31 27 45 / .2); overflow: hidden; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 12px 14px; border-top: 1px solid var(--line); font-size: .92rem; }
+.results button:first-child { border-top: 0; }
+.editor .form { flex: 1; overflow: auto; padding: 4px 18px calc(env(safe-area-inset-bottom, 0px) + 22px); max-width: 640px; width: 100%; margin: 0 auto; }
+.editor .formhead { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 2px; }
+.editor .formhead h2 { margin: 0; font-size: 1.3rem; }
+.nomap { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--ink-2); }
+.leaflet-control-attribution { font-size: 10px !important; }
+
+/* ---------- Arrival alert ---------- */
+.alert { position: fixed; inset: 0; z-index: 80; background: var(--bg); overflow: auto; }
+.alert .in { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 26px) 18px calc(env(safe-area-inset-bottom, 0px) + 26px); }
+.pulse { position: relative; width: 150px; height: 150px; margin: 6px auto 16px; display: grid; place-items: center; }
+.pulse .core { width: 86px; height: 86px; border-radius: 50%; display: grid; place-items: center; font-size: 2.6rem; background: var(--c-soft); position: relative; z-index: 2; box-shadow: inset 0 0 0 3px #fff; }
+.pulse i { position: absolute; inset: 32px; border-radius: 50%; border: 3px solid var(--c); opacity: 0; animation: ripple 2.6s ease-out 3; }
+.pulse i:nth-child(2) { animation-delay: .5s; }
+.pulse i:nth-child(3) { animation-delay: 1s; }
+@keyframes ripple { 0% { transform: scale(.7); opacity: .7; } 100% { transform: scale(1.75); opacity: 0; } }
+.alert h2 { text-align: center; font-size: 1.6rem; line-height: 1.15; margin: 0; }
+.alert .sub { text-align: center; color: var(--ink-2); margin: 6px 0 22px; }
+.alert .item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; margin-bottom: 12px; }
+.alert .item .t { font-size: 1.15rem; font-weight: 700; white-space: pre-wrap; word-break: break-word; }
+.alert .item .checks { margin-top: 12px; }
+.alert .item .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.tick { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--bg); border: 0; text-align: left; width: 100%; font-size: 1rem; }
+.tick .box { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--ink-3); flex: none; display: grid; place-items: center; background: #fff; }
+.tick[aria-checked="true"] .box { background: var(--c, var(--arrive)); border-color: var(--c, var(--arrive)); }
+.tick[aria-checked="true"] .box::after { content: ""; width: 12px; height: 7px; border-left: 3px solid #fff; border-bottom: 3px solid #fff; transform: translateY(-2px) rotate(-45deg); }
+.tick[aria-checked="true"] span { color: var(--ink-3); text-decoration: line-through; }
+
+/* ---------- Welcome ---------- */
+.welcome { position: fixed; inset: 0; z-index: 90; background: var(--bg); overflow: auto; }
+.welcome .in { min-height: 100%; max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 48px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px); }
+.welcome .appicon { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 12px 30px rgb(107 59 230 / .3); }
+.welcome h1 { font-size: 2.15rem; line-height: 1.05; margin: 22px 0 10px; letter-spacing: -0.02em; }
+.welcome .lead { font-size: 1.12rem; color: var(--ink-2); margin: 0 0 26px; }
+.steps { list-style: none; padding: 0; margin: 0 0 30px; display: grid; gap: 14px; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; }
+.steps li .ring { width: 38px; height: 38px; font-size: 1.1rem; }
+.steps li b { display: block; }
+.steps li span { color: var(--ink-2); font-size: .94rem; }
+.welcome .btns { display: grid; gap: 10px; margin-top: auto; }
+.gbtn { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px rgb(31 27 45 / .06); }
+.gbtn svg { width: 20px; height: 20px; }
+
+.ste { display: block; width: 11rem; max-width: 60%; height: auto; margin: 30px auto 6px; }
+
+/* Toast */
+#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 14px); transform: translateX(-50%); z-index: 100; background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .94rem; max-width: calc(100% - 36px); text-align: center; box-shadow: 0 8px 22px rgb(0 0 0 / .2); }
+
+.splash { position: fixed; inset: 0; z-index: 95; background: var(--bg); display: grid; place-items: center; }
+.splash img { width: 72px; height: 72px; border-radius: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .pulse i { opacity: .35; animation: none; }
+  .pulse i:nth-child(2) { transform: scale(1.3); opacity: .2; }
+  .pulse i:nth-child(3) { transform: scale(1.6); opacity: .1; }
+}
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><img src="apple-touch-icon.png" alt=""></div>
+<div id="main"></div>
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <div class="in">
+    <button data-tab="places" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+      Places
+    </button>
+    <button data-tab="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      Done
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      Settings
+    </button>
+  </div>
+</nav>
+<div id="sheet-root"></div>
+<div id="editor-root"></div>
+<div id="alert-root"></div>
+<div id="welcome-root"></div>
+<div id="toast" class="hidden" role="status" aria-live="polite"></div>
+<input type="file" id="importFile" accept="application/json,.json" class="hidden">
+
+<script type="module">
+/* =========================================================
+   Remind Me There — The Spectrum Tech Engine
+   ========================================================= */
+
+/* ---- Your Firebase project ---- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCmOBkkUSOmhkJ2IGRlgzd8bZXSHKQzon8",
+  authDomain: "remind-me-there-f1124.firebaseapp.com",
+  projectId: "remind-me-there-f1124",
+  storageBucket: "remind-me-there-f1124.firebasestorage.app",
+  messagingSenderId: "894989213857",
+  appId: "1:894989213857:web:583caacef60795ffaa50e0"
+};
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+
+const STE_LOGO = "data:image/webp;base64,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";
+const EMOJIS = ["📍","🏠","🏢","🔧","🛒","💊","🏋️","☕","🍽️","🏥","🏫","⛽","📮","🏦","👵","🌳","✂️","🐶"];
+const DUBLIN = [53.3498, -6.2603];
+
+/* ---- Small helpers ---- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const clean = (o) => JSON.parse(JSON.stringify(o));
+const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+
+function dist(a, b, c, d) {
+  const R = 6371000, r = Math.PI / 180;
+  const x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+const fmtDist = (m) => m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
+function fmtWhen(t) {
+  const d = new Date(t), now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return `Today, ${time}`;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return `Yesterday, ${time}`;
+  return d.toLocaleDateString([], { day: "numeric", month: "short" }) + `, ${time}`;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.remove("hidden");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), 3200);
+}
+
+/* ---- State ---- */
+const state = {
+  user: null,
+  cloud: false,
+  places: [],
+  history: [],
+  pos: null,
+  tracking: false,
+  tab: "places",
+  alerts: [],
+  prefs: load("rmt:prefs", { sound: true, wake: false, tracking: false }),
+};
+let presence = load("rmt:presence", {});
+const savePrefs = () => save("rmt:prefs", state.prefs);
+const savePresence = () => save("rmt:presence", presence);
+
+/* =========================================================
+   Data: saved on this phone, or in your account when signed in
+   ========================================================= */
+let fb = null;          // loaded Firebase modules
+let unsub = [];
+
+const local = {
+  get places() { return load("rmt:places", []); },
+  set places(v) { save("rmt:places", v); },
+  get history() { return load("rmt:history", []); },
+  set history(v) { save("rmt:history", v); },
+};
+
+function sortHistory() { state.history.sort((a, b) => b.at - a.at); }
+
+async function savePlace(p) {
+  p.updatedAt = Date.now();
+  const i = state.places.findIndex((x) => x.id === p.id);
+  if (i >= 0) state.places[i] = p; else state.places.push(p);
+  // Saved instantly on the phone; Firebase sends it to your account as soon as there's a connection.
+  if (state.cloud) fb.setDoc(fb.doc(fb.db, "users", state.user.uid, "places", p.id), clean(p)).catch((e) => { console.error(e); toast("Couldn't save to your account."); });
+  else local.places = state.places;
+  render();
+}
+async function removePlace(id) {
+  state.places = state.places.filter((p) => p.id !== id);
+  delete presence[id]; savePresence();
+  if (state.cloud) fb.deleteDoc(fb.doc(fb.db, "users", state.user.uid, "places", id)).catch((e) => console.error(e));
+  else local.places = state.places;
+  render();
+}
+async function addHistory(h) {
+  h.id = uid(); state.history.unshift(h);
+  if (state.cloud) fb.setDoc(fb.doc(fb.db, "users", state.user.uid, "history", h.id), clean(h)).catch((e) => console.error(e));
+  else local.history = state.history.slice(0, 200);
+}
+async function clearHistory() {
+  const old = state.history; state.history = [];
+  if (state.cloud) {
+    try { const b = fb.writeBatch(fb.db); old.slice(0, 450).forEach((h) => b.delete(fb.doc(fb.db, "users", state.user.uid, "history", h.id))); b.commit().catch((e) => console.error(e)); } catch (e) { console.error(e); }
+  } else local.history = [];
+  render();
+}
+
+async function loadFirebase() {
+  const [app, auth, fs] = await Promise.all([
+    import(FB + "firebase-app.js"), import(FB + "firebase-auth.js"), import(FB + "firebase-firestore.js"),
+  ]);
+  const a = app.initializeApp(firebaseConfig);
+  let db;
+  try { db = fs.initializeFirestore(a, { localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) }); }
+  catch { db = fs.getFirestore(a); }
+  fb = { ...auth, ...fs, auth: auth.getAuth(a), db };
+}
+
+function stopSync() { unsub.forEach((u) => u()); unsub = []; }
+
+function startSync() {
+  stopSync();
+  const u = state.user.uid;
+  unsub.push(fb.onSnapshot(fb.collection(fb.db, "users", u, "places"), (snap) => {
+    state.places = snap.docs.map((d) => d.data());
+    render(); if (sheet?.type === "place") rerenderSheet(); renderAlert();
+  }, (e) => { console.error(e); toast("Couldn't load your places. Check your connection."); }));
+  unsub.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "users", u, "history"), fb.orderBy("at", "desc"), fb.limit(150)), (snap) => {
+    state.history = snap.docs.map((d) => d.data());
+    render();
+  }, (e) => console.error(e)));
+}
+
+async function moveGuestDataToAccount() {
+  const places = local.places, history = local.history;
+  if (!places.length && !history.length) return;
+  try {
+    const b = fb.writeBatch(fb.db), u = state.user.uid;
+    places.forEach((p) => b.set(fb.doc(fb.db, "users", u, "places", p.id), clean(p)));
+    history.slice(0, 200).forEach((h) => b.set(fb.doc(fb.db, "users", u, "history", h.id), clean(h)));
+    b.commit().then(() => { local.places = []; local.history = []; }).catch((e) => console.error(e));
+    if (places.length) toast(`Moved ${plural(places.length, "place", "places")} into your account`);
+  } catch (e) { console.error(e); }
+}
+
+async function signIn() {
+  if (!fb) { toast("Signing in needs an internet connection. Try again once you're online."); return; }
+  const provider = new fb.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try { await fb.signInWithPopup(fb.auth, provider); }
+  catch (e) {
+    if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(e.code)) {
+      try { await fb.signInWithRedirect(fb.auth, provider); } catch (e2) { console.error(e2); toast("Couldn't open Google sign-in."); }
+    } else if (e.code !== "auth/popup-closed-by-user") {
+      console.error(e); toast("Sign-in didn't work. You can use the app without an account for now.");
+    }
+  }
+}
+async function signOutNow() {
+  if (!confirm("Sign out? Your places stay safe in your account and come back when you sign in again.")) return;
+  stopSync();
+  try { await fb.signOut(fb.auth); } catch {}
+}
+
+/* =========================================================
+   Location watching
+   ========================================================= */
+let watchId = null, pollTimer = null, tickTimer = null, wakeLock = null;
+
+function startTracking(fromUser) {
+  if (!("geolocation" in navigator)) { toast("This browser can't share your location."); return; }
+  stopTracking(true);
+  state.tracking = true; state.prefs.tracking = true; savePrefs();
+  const opts = { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 };
+  watchId = navigator.geolocation.watchPosition(onPos, onPosErr, opts);
+  pollTimer = setInterval(() => navigator.geolocation.getCurrentPosition(onPos, () => {}, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }), 20000);
+  tickTimer = setInterval(checkDelays, 15000);
+  if (state.prefs.wake) grabWake();
+  if (fromUser) unlockAudio();
+  render();
+}
+function stopTracking(quiet) {
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  clearInterval(pollTimer); clearInterval(tickTimer);
+  watchId = null;
+  if (!quiet) { state.tracking = false; state.prefs.tracking = false; savePrefs(); releaseWake(); render(); }
+}
+function onPos(p) {
+  state.pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy, at: Date.now() };
+  evaluate();
+  renderStatus();
+  if (state.tab === "places") renderPlacesList();
+}
+function onPosErr(e) {
+  if (e.code === 1) {
+    stopTracking();
+    toast("Location is turned off for this app. Allow it in your browser or phone settings, then tap Start watching.");
+  }
+}
+
+async function grabWake() {
+  try { if ("wakeLock" in navigator && document.visibilityState === "visible") { wakeLock = await navigator.wakeLock.request("screen"); } } catch {}
+}
+function releaseWake() { try { wakeLock && wakeLock.release(); } catch {} wakeLock = null; }
+
+/* Decide when you've arrived or left.
+   Two readings in a row inside the circle count as arriving; two readings clearly outside count as leaving.
+   The gap between the two stops GPS jitter at the edge setting off alerts. */
+function evaluate() {
+  const pos = state.pos; if (!pos) return;
+  if (pos.acc > 250) return;
+  const now = Date.now();
+  const buffer = Math.min(Math.max(pos.acc, 20), 100);
+  for (const pl of state.places) {
+    const d = dist(pos.lat, pos.lng, pl.lat, pl.lng);
+    const pr = presence[pl.id] || (presence[pl.id] = { state: null, in: 0, out: 0, since: 0, counted: false, fired: [] });
+    if (d <= pl.radius) { pr.in++; pr.out = 0; }
+    else if (d > pl.radius + buffer) { pr.out++; pr.in = 0; }
+    if (pr.in >= 2 && pr.state !== "in") { pr.state = "in"; pr.since = now; pr.counted = false; pr.fired = []; }
+    if (pr.state === "in" && !pr.counted && now - pr.since >= (pl.delay || 0) * 1000) { pr.counted = true; fire(pl, "arrive", pr); }
+    if (pr.out >= 2 && pr.state !== "out") {
+      const wasIn = pr.state === "in" && pr.counted;
+      pr.state = "out"; pr.counted = false;
+      if (wasIn) fire(pl, "leave", pr);
+    }
+  }
+  for (const id of Object.keys(presence)) if (!state.places.some((p) => p.id === id)) delete presence[id];
+  savePresence();
+}
+function checkDelays() {
+  const now = Date.now();
+  for (const pl of state.places) {
+    const pr = presence[pl.id];
+    if (pr && pr.state === "in" && !pr.counted && now - pr.since >= (pl.delay || 0) * 1000) { pr.counted = true; fire(pl, "arrive", pr); savePresence(); }
+  }
+}
+const isHere = (id) => presence[id]?.state === "in";
+
+function fire(pl, event, pr) {
+  const due = (pl.reminders || []).filter((r) => (r.when === event || r.when === "both") && !pr.fired.includes(r.id + event));
+  if (!due.length) return;
+  due.forEach((r) => pr.fired.push(r.id + event));
+  savePresence();
+  state.alerts.push({ placeId: pl.id, event, ids: due.map((r) => r.id) });
+  renderAlert();
+  ring(event);
+  notify(pl, event, due);
+}
+
+/* ---- Sound, vibration, notifications ---- */
+let audioCtx = null;
+function unlockAudio() {
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); } catch {}
+}
+function ring(event) {
+  try { navigator.vibrate && navigator.vibrate([180, 90, 180]); } catch {}
+  if (!state.prefs.sound || !audioCtx) return;
+  const notes = event === "leave" ? [784, 587] : [587, 784, 988];
+  notes.forEach((f, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime + i * 0.16;
+    o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.start(t); o.stop(t + 0.42);
+  });
+}
+async function notify(pl, event, due) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return;
+  const title = event === "arrive" ? `You're at ${pl.name}` : `Leaving ${pl.name}`;
+  const body = due.map((r) => r.text).join("\n");
+  const opts = { body, tag: pl.id + event, icon: "icon-192.png", badge: "icon-192.png", renotify: true };
+  try { const reg = await navigator.serviceWorker?.ready; if (reg) return reg.showNotification(title, opts); } catch {}
+  try { new Notification(title, opts); } catch {}
+}
+async function askNotifications() {
+  if (!("Notification" in window)) {
+    toast(/iPhone|iPad/.test(navigator.userAgent) ? "On iPhone, add the app to your home screen first, then turn on alerts." : "This browser can't show notifications.");
+    return;
+  }
+  const r = await Notification.requestPermission();
+  toast(r === "granted" ? "Notifications are on" : "Notifications are off. You can turn them on in your phone settings.");
+  render();
+}
+
+/* =========================================================
+   Rendering
+   ========================================================= */
+const ICON = {
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  locate: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  google: '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
+};
+const PIN_SVG = '<svg class="pin" viewBox="0 0 38 50" aria-hidden="true"><path d="M19 49s17-17.5 17-30A17 17 0 0 0 2 19c0 12.5 17 30 17 30z" fill="#6B3BE6" stroke="#fff" stroke-width="2.5"/><circle cx="19" cy="19" r="6.5" fill="#fff"/></svg>';
+
+function counts(p) {
+  const r = p.reminders || [];
+  return { a: r.filter((x) => x.when === "arrive" || x.when === "both").length, l: r.filter((x) => x.when === "leave" || x.when === "both").length };
+}
+function sortedPlaces() {
+  const pos = state.pos;
+  return [...state.places].map((p) => ({ p, d: pos ? dist(pos.lat, pos.lng, p.lat, p.lng) : null }))
+    .sort((x, y) => (isHere(y.p.id) - isHere(x.p.id)) || ((x.d ?? 1e12) - (y.d ?? 1e12)) || x.p.name.localeCompare(y.p.name));
+}
+
+function statusHTML() {
+  const n = state.places.length;
+  if (!state.tracking) {
+    return `<div class="status"><div class="dot"></div><div class="txt"><b>Not watching your location</b><span>Reminders only go off while this is on.</span></div>
+      <button class="btn small" data-act="track">Start watching</button></div>`;
+  }
+  const acc = state.pos ? `GPS accurate to about ${Math.round(state.pos.acc)} m` : "Finding your location…";
+  return `<div class="status on"><div class="dot"></div><div class="txt"><b>Watching ${plural(n, "place", "places")}</b><span>${acc}. Keep the app open.</span></div>
+    <button class="btn small plain" data-act="untrack">Pause</button></div>`;
+}
+
+function placeCardHTML({ p, d }) {
+  const c = counts(p), here = isHere(p.id);
+  const tags = [c.a ? `<span class="tag a">${c.a} on arrival</span>` : "", c.l ? `<span class="tag l">${c.l} on leaving</span>` : ""].join("") || `<span class="tag n">No reminders yet</span>`;
+  const right = here ? "You're here" : d != null ? fmtDist(d) : "";
+  return `<button class="place ${here ? "here" : ""}" data-act="open" data-id="${p.id}">
+    <span class="ring">${esc(p.emoji || "📍")}</span>
+    <span class="info"><span class="name">${esc(p.name)}</span><span class="tags">${tags}</span></span>
+    <span class="dist">${esc(right)}</span></button>`;
+}
+
+function renderPlacesList() {
+  const box = $("#placesList"); if (!box) return;
+  if (!state.places.length) {
+    box.innerHTML = `<div class="empty"><span class="ring" style="margin:0 auto">📍</span><h2>Add your first place</h2>
+      <p>Your mechanic, the shop, a friend's house. Then add what you want to remember when you get there.</p>
+      <button class="btn" data-act="add">${ICON.plus} Add a place</button></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="places">${sortedPlaces().map(placeCardHTML).join("")}</div>`;
+}
+function renderStatus() { const s = $("#statusBox"); if (s) s.innerHTML = statusHTML(); }
+
+function render() {
+  const main = $("#main");
+  document.querySelectorAll("#tabs button").forEach((b) => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  if (state.tab === "places") {
+    main.innerHTML = `<header class="top"><h1>Remind Me There<small>Reminders for when you get somewhere</small></h1></header>
+      <div id="statusBox">${statusHTML()}</div><div id="placesList"></div>
+      ${state.places.length ? `<button class="btn fab" data-act="add">${ICON.plus} Add place</button>` : ""}`;
+    renderPlacesList();
+  } else if (state.tab === "history") {
+    const items = state.history;
+    main.innerHTML = `<header class="top"><h1>Done<small>Reminders you've ticked off</small></h1>
+      ${items.length ? `<button class="linkbtn" data-act="clearhist">Clear</button>` : ""}</header>
+      ${items.length ? `<div class="card">${items.map((h) => `<div class="hist"><div class="e">${esc(h.emoji || "📍")}</div><div>
+        <div class="t">${esc(h.text)}</div><div class="m">${esc(h.placeName)}, ${h.event === "leave" ? "leaving" : "arriving"}. ${esc(fmtWhen(h.at))}</div></div></div>`).join("")}</div>`
+        : `<div class="empty"><span class="ring" style="margin:0 auto">✅</span><h2>Nothing done yet</h2><p>When a reminder goes off and you tap Done, it's kept here.</p></div>`}`;
+  } else {
+    main.innerHTML = settingsHTML();
+  }
+}
+
+function settingsHTML() {
+  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const acct = state.user
+    ? `<div class="row"><div class="grow"><b>${esc(state.user.displayName || "Signed in")}</b><span>${esc(state.user.email || "")}. Your places sync to every device you sign in on.</span></div>
+       <button class="btn small plain" data-act="signout">Sign out</button></div>`
+    : `<div class="row"><div class="grow"><b>Not signed in</b><span>Places are saved on this phone only. Sign in to keep them safe and use them on other devices.</span></div></div>
+       <div class="row"><button class="btn gbtn block" data-act="signin">${ICON.google} Sign in with Google</button></div>`;
+  return `<header class="top"><h1>Settings</h1></header>
+    <h2 class="sec">Account</h2><div class="card">${acct}</div>
+
+    <h2 class="sec">Alerts</h2><div class="card">
+      <div class="row"><div class="grow"><b>Notifications</b><span>${perm === "granted" ? "On. You'll get a notification if the app is in the background." : perm === "denied" ? "Blocked. Turn them on in your phone's settings for this app." : "Shows a notification if the app isn't on screen."}</span></div>
+        ${perm === "default" || perm === "unsupported" ? `<button class="btn small soft" data-act="notif">Turn on</button>` : ""}</div>
+      <div class="row"><div class="grow"><b>Sound</b><span>Plays a chime when a reminder goes off.</span></div>
+        <label class="switch"><input type="checkbox" data-pref="sound" ${state.prefs.sound ? "checked" : ""} aria-label="Sound"><span></span></label></div>
+      <div class="row"><div class="grow"><b>Keep screen on</b><span>Stops the phone sleeping while you're watching, so arrivals aren't missed.</span></div>
+        <label class="switch"><input type="checkbox" data-pref="wake" ${state.prefs.wake ? "checked" : ""} aria-label="Keep screen on"><span></span></label></div>
+      <div class="row"><div class="grow"><b>Try an alert</b><span>See and hear what a reminder looks like.</span></div>
+        <button class="btn small plain" data-act="test">Try it</button></div>
+    </div>
+
+    <h2 class="sec">How it works</h2><div class="card">
+      <p class="note">Remind Me There checks where you are while the app is open. Tap Start watching when you head out, and leave the app on screen. Turning on Keep screen on helps.</p>
+      <p class="note">If your phone locks or you switch to another app, the phone pauses location, so a reminder can be missed until you open the app again.</p>
+    </div>
+
+    ${standalone ? "" : `<h2 class="sec">Add to your home screen</h2><div class="card">
+      <p class="note"><b>iPhone (Safari):</b> tap the Share button, then Add to Home Screen.</p>
+      <p class="note"><b>Android (Chrome):</b> tap the three dots at the top right, then Add to Home screen or Install app.</p></div>`}
+
+    <h2 class="sec">Backup</h2><div class="card">
+      <div class="row"><div class="grow"><b>Save a backup file</b><span>A copy of your places and reminders.</span></div><button class="btn small plain" data-act="export">Save</button></div>
+      <div class="row"><div class="grow"><b>Load a backup file</b><span>Adds the places from a backup.</span></div><button class="btn small plain" data-act="import">Load</button></div>
+    </div>
+
+    <img class="ste" src="${STE_LOGO}" alt="Created by The Spectrum Tech Engine" width="760" height="98">`;
+}
+
+/* ---- Place detail sheet ---- */
+let sheet = null; // { type: 'place', id } or { type: 'reminder', placeId, id }
+function openSheet(s) { sheet = s; rerenderSheet(true); }
+function closeSheet() { sheet = null; $("#sheet-root").innerHTML = ""; }
+function rerenderSheet(animate) {
+  const anim = animate ? " anim" : "";
+  if (!sheet) return;
+  const root = $("#sheet-root");
+  if (sheet.type === "place") {
+    const p = state.places.find((x) => x.id === sheet.id);
+    if (!p) { closeSheet(); return; }
+    root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">${placeSheetHTML(p)}</div></div>`;
+  } else if (sheet.type === "reminder") {
+    const keepScroll = root.querySelector(".sheet")?.scrollTop || 0;
+    root.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${anim}" role="dialog" aria-modal="true" aria-label="Reminder">${reminderSheetHTML()}</div></div>`;
+    root.querySelector(".sheet").scrollTop = keepScroll;
+  }
+}
+function placeSheetHTML(p) {
+  const pos = state.pos, here = isHere(p.id);
+  const sub = here ? "You're here now" : pos ? `${fmtDist(dist(pos.lat, pos.lng, p.lat, p.lng))} away` : (p.address || "");
+  const rs = p.reminders || [];
+  const group = (key, title, color) => {
+    const list = rs.filter((r) => r.when === key);
+    if (!list.length) return "";
+    return `<div class="group"><h3><i style="background:${color}"></i>${title}</h3></div>${list.map(remHTML).join("")}`;
+  };
+  return `<div class="grab"></div>
+    <div class="sheet-head"><span class="ring">${esc(p.emoji || "📍")}</span><div class="grow"><h2>${esc(p.name)}</h2><p>${esc(sub)}</p></div>
+      <button class="iconbtn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+    ${rs.length ? group("arrive", "When I arrive", "var(--arrive)") + group("leave", "When I leave", "var(--leave)") + group("both", "When I arrive and leave", "var(--ink-3)")
+      : `<p class="none">No reminders here yet. What do you want to remember at ${esc(p.name)}?</p>`}
+    <div class="actions">
+      <button class="btn block" data-act="newrem" data-id="${p.id}">${ICON.plus} Add a reminder</button>
+      <button class="btn plain block" data-act="edit" data-id="${p.id}">Edit place</button>
+      <a class="linkbtn" style="text-align:center" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">Open in Maps</a>
+    </div>`;
+}
+function remHTML(r) {
+  const items = r.items || [];
+  const meta = [r.repeat ? "Every visit" : "Once", items.length ? plural(items.length, "item", "items") : ""].filter(Boolean).join(", ");
+  return `<button class="rem" data-act="editrem" data-id="${r.id}"><div class="t">${esc(r.text)}</div>
+    ${items.length ? `<ul>${items.slice(0, 4).map((i) => `<li>${esc(i.text)}</li>`).join("")}${items.length > 4 ? `<li>and ${items.length - 4} more</li>` : ""}</ul>` : ""}
+    <div class="m">${meta}</div></button>`;
+}
+
+/* ---- Reminder editor ---- */
+let draft = null;
+function openReminder(placeId, remId) {
+  const p = state.places.find((x) => x.id === placeId);
+  const r = remId && (p.reminders || []).find((x) => x.id === remId);
+  draft = r ? clean(r) : { id: uid(), text: "", when: "arrive", repeat: false, items: [], createdAt: Date.now() };
+  draft._new = !r;
+  sheet = { type: "reminder", placeId, id: draft.id };
+  rerenderSheet(true);
+  setTimeout(() => { if (draft?._new) $("#remText")?.focus(); }, 60);
+}
+function reminderSheetHTML() {
+  const p = state.places.find((x) => x.id === sheet.placeId);
+  const segBtn = (v, l) => `<button type="button" data-act="when" data-v="${v}" aria-pressed="${draft.when === v}">${l}</button>`;
+  return `<div class="grab"></div>
+    <div class="sheet-head"><button class="iconbtn" data-act="backplace" aria-label="Back">${ICON.back}</button>
+      <div class="grow"><h2>${draft._new ? "New reminder" : "Edit reminder"}</h2><p>${esc(p?.emoji || "📍")} ${esc(p?.name || "")}</p></div></div>
+    <label class="f" for="remText">What do you want to remember?</label>
+    <textarea class="input" id="remText" placeholder="Ask about the noise from the back wheel" maxlength="400">${esc(draft.text)}</textarea>
+    <label class="f">Remind me</label>
+    <div class="seg">${segBtn("arrive", "When I arrive")}${segBtn("leave", "When I leave")}${segBtn("both", "Both")}</div>
+    <label class="f" for="itemText">Checklist <span style="font-weight:400;color:var(--ink-2)">(optional)</span></label>
+    <div class="checks">${draft.items.map((it, i) => `<div class="check"><span>${esc(it.text)}</span><button class="iconbtn" style="width:36px;height:36px" data-act="rmitem" data-i="${i}" aria-label="Remove ${esc(it.text)}">${ICON.close}</button></div>`).join("")}</div>
+    <div class="addrow" style="margin-top:8px"><input class="input" id="itemText" placeholder="${draft.when === "leave" ? "Gym bag" : "Receipt"}" maxlength="120" enterkeyhint="done"><button class="btn soft" data-act="additem">Add</button></div>
+    <label class="f">How often</label>
+    <div class="seg two"><button type="button" data-act="repeat" data-v="0" aria-pressed="${!draft.repeat}">Just once</button><button type="button" data-act="repeat" data-v="1" aria-pressed="${!!draft.repeat}">Every visit</button></div>
+    <p class="hint">${draft.repeat ? "Stays after you tick it off, ready for next time." : "Moves to Done once you tick it off."}</p>
+    <div class="actions">
+      <button class="btn block" data-act="saverem">Save reminder</button>
+      ${draft._new ? "" : `<button class="btn danger block" data-act="delrem">Delete reminder</button>`}
+    </div>`;
+}
+function syncDraftText() { const t = $("#remText"); if (t && draft) draft.text = t.value; }
+function addDraftItem() {
+  syncDraftText();
+  const inp = $("#itemText"); const v = inp?.value.trim(); if (!v) return;
+  draft.items.push({ id: uid(), text: v, done: false });
+  rerenderSheet(); setTimeout(() => $("#itemText")?.focus(), 30);
+}
+async function saveDraft() {
+  syncDraftText();
+  const pending = $("#itemText")?.value.trim();
+  if (pending) draft.items.push({ id: uid(), text: pending, done: false });
+  draft.text = draft.text.trim();
+  if (!draft.text && draft.items.length) draft.text = draft.items.map((i) => i.text).join(", ").slice(0, 80);
+  if (!draft.text) { toast("Write what you want to remember first."); $("#remText")?.focus(); return; }
+  const p = clean(state.places.find((x) => x.id === sheet.placeId));
+  const r = { ...draft }; delete r._new;
+  p.reminders = p.reminders || [];
+  const i = p.reminders.findIndex((x) => x.id === r.id);
+  if (i >= 0) p.reminders[i] = r; else p.reminders.push(r);
+  const placeId = p.id;
+  await savePlace(p);
+  // If you're already here, a new arrival reminder won't wait for the next visit to be seen.
+  if (draft._new && isHere(placeId) && (r.when === "arrive" || r.when === "both")) toast("Saved. You're here now, so it'll remind you next time you arrive.");
+  else toast("Reminder saved");
+  draft = null; openSheet({ type: "place", id: placeId });
+}
+async function deleteDraft() {
+  if (!confirm("Delete this reminder?")) return;
+  const p = clean(state.places.find((x) => x.id === sheet.placeId));
+  p.reminders = (p.reminders || []).filter((r) => r.id !== draft.id);
+  await savePlace(p); draft = null; openSheet({ type: "place", id: p.id });
+}
+
+/* ---- Place editor (map) ---- */
+let ed = null; // { place, map, circle }
+function openEditor(placeId) {
+  const existing = placeId && state.places.find((x) => x.id === placeId);
+  const place = existing ? clean(existing) : { id: uid(), name: "", emoji: "📍", lat: null, lng: null, radius: 100, delay: 0, reminders: [], createdAt: Date.now() };
+  ed = { place, isNew: !existing, map: null, circle: null };
+  closeSheet();
+  const root = $("#editor-root");
+  root.innerHTML = `<div class="editor" role="dialog" aria-modal="true" aria-label="${ed.isNew ? "Add a place" : "Edit place"}">
+    <div class="mapwrap"><div id="map"></div>${PIN_SVG}
+      <div class="maptop"><button class="iconbtn" data-act="closeeditor" aria-label="Close" style="width:48px;height:48px;box-shadow:0 4px 14px rgb(31 27 45 / .15)">${ICON.close}</button>
+        <input class="input" id="search" placeholder="Search for an address" enterkeyhint="search" autocomplete="off"></div>
+      <div id="results"></div>
+      <button class="btn small plain locate" data-act="locate">${ICON.locate} My location</button></div>
+    <div class="form">
+      <div class="formhead"><h2>${ed.isNew ? "Add a place" : "Edit place"}</h2></div>
+      <p class="hint" style="margin-top:4px">Move the map so the pin sits on the place.</p>
+      <label class="f" for="pname">Name</label>
+      <input class="input" id="pname" value="${esc(place.name)}" placeholder="Mechanic" maxlength="60" autocomplete="off">
+      <label class="f">Icon</label>
+      <div class="emojis" id="emojis">${EMOJIS.map((e) => `<button type="button" data-act="emoji" data-v="${e}" aria-pressed="${place.emoji === e}" aria-label="${e}">${e}</button>`).join("")}</div>
+      <label class="f" for="radius">How close counts as there: <span id="rlabel">${place.radius} m</span></label>
+      <input type="range" id="radius" min="30" max="500" step="10" value="${place.radius}">
+      <p class="hint">Around 60 m suits a house, 150 m a shop with a car park, 300 m or more a shopping centre.</p>
+      <label class="f">Arrival reminders go off</label>
+      <div class="seg two"><button type="button" data-act="delay" data-v="0" aria-pressed="${!place.delay}">Straight away</button><button type="button" data-act="delay" data-v="120" aria-pressed="${place.delay === 120}">After 2 minutes there</button></div>
+      <p class="hint">Waiting 2 minutes stops alerts when you just drive past.</p>
+      <div class="actions">
+        <button class="btn block" data-act="saveplace">Save place</button>
+        ${ed.isNew ? "" : `<button class="btn danger block" data-act="delplace">Delete place</button>`}
+      </div>
+    </div></div>`;
+  $("#radius").addEventListener("input", (e) => { ed.place.radius = +e.target.value; $("#rlabel").textContent = `${ed.place.radius} m`; ed.circle?.setRadius(ed.place.radius); });
+  $("#search").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(e.target.value); } });
+  initMap();
+}
+function initMap() {
+  const box = $("#map");
+  if (typeof L === "undefined") {
+    box.innerHTML = `<div class="nomap">The map needs an internet connection.<br>You can still use My location to place the pin where you're standing.</div>`;
+    if (ed.place.lat == null && state.pos) { ed.place.lat = state.pos.lat; ed.place.lng = state.pos.lng; }
+    return;
+  }
+  const p = ed.place;
+  const start = p.lat != null ? [p.lat, p.lng] : state.pos ? [state.pos.lat, state.pos.lng] : DUBLIN;
+  const zoom = p.lat != null || state.pos ? 17 : 12;
+  const map = L.map(box, { zoomControl: false, attributionControl: true }).setView(start, zoom);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+  const circle = L.circle(start, { radius: p.radius, color: "#6B3BE6", weight: 2, fillColor: "#6B3BE6", fillOpacity: 0.12 }).addTo(map);
+  map.on("move", () => circle.setLatLng(map.getCenter()));
+  ed.map = map; ed.circle = circle;
+  setTimeout(() => map.invalidateSize(), 60);
+  if (p.lat == null && !state.pos && navigator.geolocation) locateMe(true);
+}
+function locateMe(quiet) {
+  navigator.geolocation.getCurrentPosition((g) => {
+    state.pos = { lat: g.coords.latitude, lng: g.coords.longitude, acc: g.coords.accuracy, at: Date.now() };
+    if (ed?.map) ed.map.setView([state.pos.lat, state.pos.lng], 18);
+    else if (ed) { ed.place.lat = state.pos.lat; ed.place.lng = state.pos.lng; toast("Pin placed where you are"); }
+  }, () => { if (!quiet) toast("Couldn't get your location. Check location is allowed for this app."); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
+}
+async function searchAddress(q) {
+  q = q.trim(); const box = $("#results"); if (!q) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="results"><button disabled>Searching…</button></div>`;
+  try {
+    const c = ed.map ? ed.map.getCenter() : null;
+    const near = c ? `&viewbox=${c.lng - 1},${c.lat + 1},${c.lng + 1},${c.lat - 1}` : "";
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(q)}${near}`, { headers: { "Accept-Language": navigator.language || "en" } });
+    const list = await res.json();
+    box.innerHTML = list.length
+      ? `<div class="results">${list.map((r) => `<button data-act="pick" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${esc(r.name || "")}">${esc(r.display_name)}</button>`).join("")}</div>`
+      : `<div class="results"><button data-act="noresults">No matches. Try adding the town or county.</button></div>`;
+  } catch { box.innerHTML = `<div class="results"><button data-act="noresults">Search needs an internet connection.</button></div>`; }
+}
+function closeEditor() { if (ed?.map) ed.map.remove(); ed = null; $("#editor-root").innerHTML = ""; }
+async function saveEditor() {
+  const p = ed.place;
+  p.name = $("#pname").value.trim();
+  if (!p.name) { toast("Give the place a name."); $("#pname").focus(); return; }
+  if (ed.map) { const c = ed.map.getCenter(); p.lat = +c.lat.toFixed(6); p.lng = +c.lng.toFixed(6); }
+  if (p.lat == null) { toast("Tap My location or search for an address to set the place."); return; }
+  const moved = !ed.isNew && (() => { const o = state.places.find((x) => x.id === p.id); return !o || o.lat !== p.lat || o.lng !== p.lng || o.radius !== p.radius; })();
+  if (moved) delete presence[p.id];
+  const isNew = ed.isNew, id = p.id;
+  closeEditor();
+  await savePlace(p);
+  toast(isNew ? "Place saved. Now add a reminder." : "Place updated");
+  if (isNew) openReminder(id); else openSheet({ type: "place", id });
+  lookUpAddress(id);
+  if (isNew && !state.tracking && state.places.length === 1) setTimeout(() => toast("Tap Start watching so reminders can go off."), 3400);
+}
+async function lookUpAddress(id) {
+  const p = state.places.find((x) => x.id === id); if (!p) return;
+  try {
+    const r = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${p.lat}&lon=${p.lng}`)).json();
+    const a = r.address || {};
+    const addr = [a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road, a.suburb || a.town || a.village || a.city].filter(Boolean).join(", ");
+    const cur = state.places.find((x) => x.id === id);
+    if (addr && cur && cur.address !== addr) await savePlace({ ...clean(cur), address: addr });
+  } catch {}
+}
+
+/* ---- Arrival alert ---- */
+let demoPlace = null;
+const findPlace = (id) => (demoPlace && id === demoPlace.id ? demoPlace : state.places.find((x) => x.id === id));
+function renderAlert() {
+  const root = $("#alert-root");
+  // Drop alerts whose reminders have all been dealt with
+  state.alerts = state.alerts.filter((a) => {
+    const p = findPlace(a.placeId);
+    a.ids = a.ids.filter((id) => p?.reminders?.some((r) => r.id === id));
+    return a.ids.length;
+  });
+  const a = state.alerts[0];
+  if (!a) { root.innerHTML = ""; return; }
+  const p = findPlace(a.placeId);
+  const leave = a.event === "leave";
+  const c = leave ? "var(--leave)" : "var(--arrive)", cs = leave ? "var(--leave-soft)" : "var(--arrive-soft)";
+  const rems = a.ids.map((id) => p.reminders.find((r) => r.id === id));
+  root.innerHTML = `<div class="alert" role="alertdialog" aria-modal="true" aria-label="${leave ? "Leaving" : "Arrived at"} ${esc(p.name)}" style="--c:${c};--c-soft:${cs}">
+    <div class="in">
+      <div class="pulse"><i></i><i></i><i></i><div class="core">${esc(p.emoji || "📍")}</div></div>
+      <h2>${leave ? `Leaving ${esc(p.name)}` : `You're at ${esc(p.name)}`}</h2>
+      <p class="sub">${leave ? "Before you go" : "Don't forget"}</p>
+      ${rems.map((r) => `<div class="item"><div class="t">${esc(r.text)}</div>
+        ${(r.items || []).length ? `<div class="checks">${r.items.map((it, i) => `<button class="tick" role="checkbox" aria-checked="${!!it.done}" data-act="tick" data-rid="${r.id}" data-i="${i}"><span class="box"></span><span>${esc(it.text)}</span></button>`).join("")}</div>` : ""}
+        <div class="btns"><button class="btn" data-act="done" data-rid="${r.id}" style="background:${c}">Done</button>
+        <button class="btn plain" data-act="later" data-rid="${r.id}">Next visit</button></div></div>`).join("")}
+      <div class="actions"><button class="linkbtn" data-act="dismiss" style="text-align:center">Close</button></div>
+    </div></div>`;
+}
+async function alertAction(act, rid, i) {
+  const a = state.alerts[0]; if (!a) return;
+  const p = clean(state.places.find((x) => x.id === a.placeId));
+  const r = p.reminders.find((x) => x.id === rid);
+  if (act === "tick") { r.items[i].done = !r.items[i].done; await savePlace(p); renderAlert(); return; }
+  if (act === "done") {
+    await addHistory({ text: r.text, placeName: p.name, emoji: p.emoji, event: a.event, at: Date.now() });
+    if (r.repeat) r.items = (r.items || []).map((x) => ({ ...x, done: false }));
+    else p.reminders = p.reminders.filter((x) => x.id !== rid);
+    a.ids = a.ids.filter((x) => x !== rid);
+    await savePlace(p);
+  }
+  if (act === "later") { a.ids = a.ids.filter((x) => x !== rid); }
+  if (!a.ids.length) state.alerts.shift();
+  renderAlert();
+}
+function testAlert() {
+  unlockAudio();
+  demoPlace = { id: "__demo", name: "The mechanic", emoji: "🔧", lat: 0, lng: 0, radius: 100, reminders: [{ id: "__r", text: "Ask about the noise from the back wheel", when: "arrive", items: [{ id: "a", text: "Get the receipt", done: false }], repeat: false }] };
+  state.alerts.unshift({ placeId: "__demo", event: "arrive", ids: ["__r"], demo: true });
+  renderAlert(); ring("arrive");
+}
+function endDemo() { demoPlace = null; state.alerts = state.alerts.filter((a) => !a.demo); renderAlert(); }
+
+/* ---- Welcome ---- */
+function showWelcome() {
+  $("#welcome-root").innerHTML = `<div class="welcome"><div class="in">
+    <img class="appicon" src="apple-touch-icon.png" alt="">
+    <h1>Remind Me There</h1>
+    <p class="lead">Reminders that go off when you get somewhere, not at a set time.</p>
+    <ul class="steps">
+      <li><span class="ring">🔧</span><div><b>Save a place</b><span>Drop a pin on your mechanic, the shop or a friend's house.</span></div></li>
+      <li><span class="ring">📝</span><div><b>Add what to remember</b><span>"Ask about the back wheel" or a checklist like "keys, wallet".</span></div></li>
+      <li><span class="ring" style="background:var(--leave-soft)">🔔</span><div><b>Get reminded there</b><span>When you arrive, or as you leave.</span></div></li>
+    </ul>
+    <div class="btns">
+      <button class="btn gbtn" data-act="signin">${ICON.google} Sign in with Google</button>
+      <button class="btn ghost" data-act="guest">Use without an account</button>
+      <p class="hint" style="text-align:center">Signing in keeps your places safe and syncs them between devices.</p>
+    </div>
+    <img class="ste" src="${STE_LOGO}" alt="Created by The Spectrum Tech Engine" width="760" height="98">
+  </div></div>`;
+}
+function hideWelcome() { $("#welcome-root").innerHTML = ""; }
+
+/* ---- Backup ---- */
+function exportBackup() {
+  const data = { app: "Remind Me There", version: 1, savedAt: new Date().toISOString(), places: state.places, history: state.history };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  const a = document.createElement("a"); a.href = url; a.download = `remind-me-there-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function importBackup(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    const places = Array.isArray(data.places) ? data.places.filter((p) => p && p.id && typeof p.lat === "number" && typeof p.lng === "number" && p.name) : [];
+    if (!places.length) { toast("That file doesn't have any places in it."); return; }
+    for (const p of places) await savePlace({ reminders: [], radius: 100, emoji: "📍", delay: 0, ...p });
+    toast(`Loaded ${plural(places.length, "place", "places")}`);
+  } catch { toast("Couldn't read that file. Choose a Remind Me There backup."); }
+}
+
+/* =========================================================
+   Taps
+   ========================================================= */
+document.addEventListener("click", async (e) => {
+  const tabBtn = e.target.closest("#tabs button");
+  if (tabBtn) { state.tab = tabBtn.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id;
+  switch (act) {
+    case "scrim": if (e.target === el) { if (sheet?.type === "reminder") { syncDraftText(); openSheet({ type: "place", id: sheet.placeId }); } else closeSheet(); } break;
+    case "close": closeSheet(); break;
+    case "track": startTracking(true); break;
+    case "untrack": stopTracking(); break;
+    case "add": unlockAudio(); openEditor(); break;
+    case "open": openSheet({ type: "place", id }); break;
+    case "edit": openEditor(id); break;
+    case "newrem": openReminder(id); break;
+    case "editrem": openReminder(sheet.id, id); break;
+    case "backplace": syncDraftText(); draft = null; openSheet({ type: "place", id: sheet.placeId }); break;
+    case "when": syncDraftText(); draft.when = el.dataset.v; rerenderSheet(); break;
+    case "repeat": syncDraftText(); draft.repeat = el.dataset.v === "1"; rerenderSheet(); break;
+    case "additem": addDraftItem(); break;
+    case "rmitem": syncDraftText(); draft.items.splice(+el.dataset.i, 1); rerenderSheet(); break;
+    case "saverem": saveDraft(); break;
+    case "delrem": deleteDraft(); break;
+    case "closeeditor": closeEditor(); break;
+    case "locate": locateMe(); break;
+    case "emoji": ed.place.emoji = el.dataset.v; document.querySelectorAll("#emojis button").forEach((b) => b.setAttribute("aria-pressed", b === el)); break;
+    case "delay": ed.place.delay = +el.dataset.v; el.parentElement.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b === el)); break;
+    case "pick": {
+      const lat = +el.dataset.lat, lng = +el.dataset.lng;
+      if (ed.map) ed.map.setView([lat, lng], 18); else { ed.place.lat = lat; ed.place.lng = lng; }
+      if (!$("#pname").value.trim() && el.dataset.name) $("#pname").value = el.dataset.name;
+      $("#results").innerHTML = ""; $("#search").blur(); break;
+    }
+    case "noresults": $("#results").innerHTML = ""; break;
+    case "saveplace": saveEditor(); break;
+    case "delplace": if (confirm(`Delete ${ed.place.name || "this place"} and its reminders?`)) { const pid = ed.place.id; closeEditor(); await removePlace(pid); toast("Place deleted"); } break;
+    case "tick": case "done": case "later":
+      if (state.alerts[0]?.demo) {
+        if (act === "tick") { const it = demoPlace.reminders[0].items[+el.dataset.i]; it.done = !it.done; renderAlert(); }
+        else { endDemo(); if (act === "done") toast("In a real alert, Done moves the reminder to your Done list."); }
+        break;
+      }
+      alertAction(act, el.dataset.rid, +el.dataset.i); break;
+    case "dismiss": if (state.alerts[0]?.demo) endDemo(); else { state.alerts.shift(); renderAlert(); } break;
+    case "signin": unlockAudio(); signIn(); break;
+    case "guest": save("rmt:onboarded", true); hideWelcome(); render(); break;
+    case "signout": signOutNow(); break;
+    case "notif": askNotifications(); break;
+    case "test": testAlert(); break;
+    case "clearhist": if (confirm("Clear everything in Done?")) clearHistory(); break;
+    case "export": exportBackup(); break;
+    case "import": $("#importFile").click(); break;
+  }
+});
+document.addEventListener("change", (e) => {
+  const pref = e.target.dataset?.pref;
+  if (pref) {
+    state.prefs[pref] = e.target.checked; savePrefs();
+    if (pref === "wake") { if (e.target.checked && state.tracking) grabWake(); if (!e.target.checked) releaseWake(); }
+    if (pref === "sound" && e.target.checked) unlockAudio();
+  }
+  if (e.target.id === "importFile" && e.target.files[0]) { importBackup(e.target.files[0]); e.target.value = ""; }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.id === "itemText") { e.preventDefault(); addDraftItem(); }
+  if (e.key === "Escape") { if (ed) closeEditor(); else if (sheet) closeSheet(); }
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.tracking) {
+    if (state.prefs.wake) grabWake();
+    navigator.geolocation.getCurrentPosition(onPos, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  }
+});
+
+/* =========================================================
+   Start up
+   ========================================================= */
+function hideSplash() { $("#splash")?.remove(); }
+
+async function boot() {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+  // Show what's saved on the phone straight away
+  state.places = local.places; state.history = local.history; sortHistory();
+  render();
+
+  let authResolved = false;
+  const finish = () => {
+    if (authResolved) return; authResolved = true;
+    hideSplash();
+    if (!state.user && !load("rmt:onboarded", false)) showWelcome();
+  };
+  setTimeout(finish, 3500); // don't wait forever if the network is slow
+
+  try {
+    await loadFirebase();
+    fb.getRedirectResult(fb.auth).catch((e) => { if (e?.code) console.warn(e.code); });
+    fb.onAuthStateChanged(fb.auth, async (user) => {
+      if (user) {
+        state.user = { uid: user.uid, displayName: user.displayName, email: user.email };
+        state.cloud = true;
+        save("rmt:onboarded", true);
+        hideWelcome();
+        await moveGuestDataToAccount();
+        startSync();
+      } else {
+        const wasSignedIn = state.cloud;
+        state.user = null; state.cloud = false; stopSync();
+        state.places = local.places; state.history = local.history; sortHistory();
+        if (wasSignedIn) { save("rmt:onboarded", false); showWelcome(); }
+      }
+      render(); finish();
+    });
+  } catch (e) {
+    console.warn("Firebase didn't load, using this phone only", e);
+    finish();
+  }
+
+  if (state.prefs.tracking) startTracking(false);
+}
+boot();
+</script>
+</body>
+</html>
